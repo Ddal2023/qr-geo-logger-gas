@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #020617;
+        color: #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      .card {
+        max-width: 420px;
+        padding: 20px 22px;
+        border-radius: 16px;
+        background: #020617;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.6);
+        border: 1px solid #1f2937;
+        text-align: center;
+      }
+      .title {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+      }
+      .subtitle {
+        font-size: 0.85rem;
+        color: #9ca3af;
+        margin-bottom: 12px;
+      }
+      .status-ok {
+        color: #4ade80;
+      }
+      .status-error {
+        color: #f97373;
+      }
+      .spinner {
+        margin: 18px auto 8px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 3px solid #4b5563;
+        border-top-color: #22c55e;
+        animation: spin 0.9s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .note {
+        font-size: 0.8rem;
+        color: #9ca3af;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div id="title" class="title">Получаем геопозицию…</div>
+      <div id="subtitle" class="subtitle">Разрешите доступ к геолокации в браузере.</div>
+      <div id="spinner" class="spinner"></div>
+      <div id="error" class="subtitle status-error"></div>
+      <div id="note" class="note"></div>
+    </div>
+
+    <script>
+      const EMPLOYEE = '<?= employee ?>';
+      const ASSET    = '<?= asset ?>';
+      const TOKEN    = '<?= token ?>';
+
+      const noteText = [];
+      if (EMPLOYEE) noteText.push('employee=' + EMPLOYEE);
+      if (ASSET)    noteText.push('asset=' + ASSET);
+      if (noteText.length) {
+        document.getElementById('note').textContent = noteText.join('; ');
+      }
+
+      function setStatus(text, ok) {
+        const t = document.getElementById('title');
+        t.textContent = text;
+        t.classList.toggle('status-ok', !!ok);
+      }
+
+      function setError(msg) {
+        document.getElementById('error').textContent = msg;
+        document.getElementById('spinner').style.display = 'none';
+      }
+
+      function sendPosition(position) {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const ua  = navigator.userAgent || '';
+
+        setStatus('Отправляем данные…', false);
+
+        google.script.run
+          .withSuccessHandler(function() {
+            setStatus('Успешно зафиксировано ✅', true);
+            document.getElementById('subtitle').textContent = 'Можно закрыть это окно.';
+            document.getElementById('spinner').style.display = 'none';
+          })
+          .withFailureHandler(function(err) {
+            setError('Ошибка при отправке данных: ' + (err && err.message ? err.message : err));
+          })
+          .logScanGeo(EMPLOYEE, ASSET, TOKEN, lat, lng, ua);
+      }
+
+      function handleGeoError(error) {
+        let msg = 'Ошибка геолокации: ';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            msg += 'доступ отклонён пользователем.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            msg += 'позиция недоступна.';
+            break;
+          case error.TIMEOUT:
+            msg += 'тайм-аут.';
+            break;
+          default:
+            msg += error.message;
+        }
+        setError(msg);
+      }
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          sendPosition,
+          handleGeoError,
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+      } else {
+        setError('Геолокация не поддерживается этим устройством.');
+      }
+    </script>
+  </body>
+</html>
