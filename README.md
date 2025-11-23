@@ -99,3 +99,29 @@ some working Urls
 
 
 
+and:
+
+\## 📸 some Screenshots:
+
+
+
+\### Geo mode success
+
+!\[Geo Success](images/geo-success.png)
+
+
+
+\### Geo error (permissions denied)
+
+!\[Geo Error](images/geo-error.png)
+
+
+
+\### Logged events in Google Sheets
+
+!\[Logs Table](images/log-table.png)
+
+
+
+
+
